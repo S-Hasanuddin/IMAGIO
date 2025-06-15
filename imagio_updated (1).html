@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagio - AI Video Generation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            min-height: 100vh;
+            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .bg-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .bg-image-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-image: url('assets/BG.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            z-index: -2;
+            animation: fadeInBg 1.5s ease-in forwards;
+            animation-delay: 4.5s; /* Start after color spreads finish */
+        }
+
+        @keyframes fadeInBg {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 0.9;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            animation: fadeInDown 1s ease-out 0.8s forwards;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .nav-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            width: 20px;
+            height: 16px;
+            justify-content: space-between;
+        }
+
+        .hamburger span {
+            width: 100%;
+            height: 2px;
+            background: white;
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            position: absolute;
+            top: 70px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 200px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transform: translateY(-10px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .nav-menu.active {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .nav-menu ul {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 15px;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #667eea;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 0;
+            min-height: calc(100vh - 140px);
+        }
+
+        .input-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+            position: relative;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: scale(0.1);
+            animation: scaleFromCenter 0.5s ease-out 0.2s forwards;
+            overflow: hidden;
+        }
+
+        .input-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(252, 245, 199, 0.95);
+            transform: translate(-50%, -50%);
+            animation: containerColorSpread 3s ease-out 1.5s forwards;
+            z-index: -1;
+            border-radius: 82% 18% 37% 63% / 23% 89% 11% 77%;
+            filter: blur(0.5px);
+        }
+
+        .input-container::after {
+            content: '';
+            position: absolute;
+            top: 60%;
+            left: 30%;
+            width: 0;
+            height: 0;
+            background: rgba(252, 245, 199, 0.7);
+            transform: translate(-50%, -50%);
+            animation: containerColorSpread2 2.5s ease-out 2s forwards;
+            z-index: -1;
+            border-radius: 15% 85% 78% 22% / 91% 9% 84% 16%;
+        }
+
+        .input-container .organic-spread {
+            position: absolute;
+            background: rgba(252, 245, 199, 0.4);
+            border-radius: 50%;
+            z-index: -1;
+            animation: organicPulse 4s ease-in-out infinite;
+        }
+
+        .input-container .spread-1 {
+            top: 20%;
+            right: 15%;
+            width: 40px;
+            height: 60px;
+            border-radius: 73% 27% 82% 18% / 34% 89% 11% 66%;
+            animation: organicSpread1 2.8s ease-out 2.2s forwards;
+        }
+
+        .input-container .spread-2 {
+            bottom: 25%;
+            left: 10%;
+            width: 30px;
+            height: 50px;
+            border-radius: 91% 9% 23% 77% / 67% 45% 55% 33%;
+            animation: organicSpread2 3.2s ease-out 2.5s forwards;
+        }
+
+        .input-container .spread-3 {
+            top: 70%;
+            right: 35%;
+            width: 25px;
+            height: 35px;
+            border-radius: 45% 55% 91% 9% / 83% 17% 74% 26%;
+            animation: organicSpread3 2.6s ease-out 2.8s forwards;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .input-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .upload-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .input-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .options-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .options-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        .dropdown-menu {
+            background: rgba(248, 249, 250, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .dropdown-menu.active {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .dropdown-item {
+            margin-bottom: 20px;
+        }
+
+        .dropdown-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .dropdown-item label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .dropdown-item select,
+        .dropdown-item input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .dropdown-item select:focus,
+        .dropdown-item input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .slider-container {
+            position: relative;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 15px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .time-estimate {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .main-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .main-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .main-input::placeholder {
+            color: #999;
+        }
+
+        /* Upload Section - Hidden by default */
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-area:hover,
+        .upload-area.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            color: #667eea;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .uploaded-files {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-icon {
+            color: #667eea;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: #ff4757;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+
+        .remove-file:hover {
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 1.2s forwards;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Small Generate Button inside container */
+        .generate-btn-small {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: 2px solid #e0e0e0;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            align-self: flex-end;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 1.2s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn-small::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 192, 159, 0.9);
+            transform: translate(-50%, -50%);
+            animation: buttonColorSpread 2.5s ease-out 2s forwards;
+            z-index: -1;
+            border-radius: 89% 11% 67% 33% / 45% 78% 22% 55%;
+        }
+
+        .generate-btn-small::after {
+            content: '';
+            position: absolute;
+            top: 30%;
+            right: 20%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 192, 159, 0.6);
+            transform: translate(50%, -50%);
+            animation: buttonSpread2 2.2s ease-out 2.3s forwards;
+            z-index: -1;
+            border-radius: 23% 77% 91% 9% / 84% 16% 45% 55%;
+        }
+
+        .generate-btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(255, 192, 159, 0.3);
+        }
+
+        .generate-btn-small:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .input-container,
+            .upload-section {
+                padding: 25px;
+                margin-bottom: 20px;
+            }
+
+            .main-input {
+                min-height: 120px;
+                font-size: 14px;
+            }
+
+            .upload-area {
+                padding: 30px 20px;
+            }
+
+            .upload-icon {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleFromCenter {
+            from {
+                opacity: 0;
+                transform: scale(0.1);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes containerColorSpread {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            30% {
+                width: 80%;
+                height: 60%;
+                opacity: 0.3;
+                border-radius: 45% 55% 78% 22% / 67% 33% 89% 11%;
+            }
+            60% {
+                width: 120%;
+                height: 140%;
+                opacity: 0.7;
+                border-radius: 91% 9% 23% 77% / 34% 66% 82% 18%;
+            }
+            to {
+                width: 160%;
+                height: 220%;
+                opacity: 0.95;
+                border-radius: 82% 18% 37% 63% / 23% 89% 11% 77%;
+            }
+        }
+
+        @keyframes containerColorSpread2 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            40% {
+                width: 60px;
+                height: 80px;
+                opacity: 0.4;
+                border-radius: 67% 33% 89% 11% / 45% 55% 78% 22%;
+            }
+            to {
+                width: 120px;
+                height: 160px;
+                opacity: 0.7;
+                border-radius: 15% 85% 78% 22% / 91% 9% 84% 16%;
+            }
+        }
+
+        @keyframes organicSpread1 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            to {
+                width: 80px;
+                height: 100px;
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes organicSpread2 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            to {
+                width: 60px;
+                height: 90px;
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes organicSpread3 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            to {
+                width: 50px;
+                height: 70px;
+                opacity: 0.4;
+            }
+        }
+
+        @keyframes buttonColorSpread {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            25% {
+                width: 150%;
+                height: 100%;
+                opacity: 0.3;
+                border-radius: 67% 33% 91% 9% / 78% 22% 45% 55%;
+            }
+            50% {
+                width: 250%;
+                height: 200%;
+                opacity: 0.6;
+                border-radius: 23% 77% 84% 16% / 91% 9% 67% 33%;
+            }
+            to {
+                width: 350%;
+                height: 450%;
+                opacity: 0.9;
+                border-radius: 89% 11% 67% 33% / 45% 78% 22% 55%;
+            }
+        }
+
+        @keyframes buttonSpread2 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            to {
+                width: 100px;
+                height: 80px;
+                opacity: 0.6;
+                border-radius: 23% 77% 91% 9% / 84% 16% 45% 55%;
+            }
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e0e0e0;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #FFC09F;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+
+        .toggle-label {
+            font-weight: 500;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        /* Language selector styles */
+        .language-select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: white;
+        }
+
+        .language-select:disabled {
+            background-color: #f5f5f5;
+            border-color: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .language-select:not(:disabled):hover {
+                border-color: #FFC09F;
+            }
+
+        .background-spreads {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .bg-spread {
+            position: absolute;
+            background: rgba(156, 206, 250, 0.9);
+            transform: translate(-50%, -50%);
+            z-index: -1;
+        }
+
+        .bg-spread-1 {
+            top: 30%;
+            left: 40%;
+            width: 0;
+            height: 0;
+            animation: bgSpread1 3s ease-out forwards;
+            border-radius: 89% 11% 67% 33% / 45% 78% 22% 55%;
+        }
+
+        .bg-spread-2 {
+            top: 60%;
+            left: 70%;
+            width: 0;
+            height: 0;
+            animation: bgSpread2 2.5s ease-out 0.5s forwards;
+            border-radius: 23% 77% 91% 9% / 84% 16% 45% 55%;
+            background: rgba(156, 206, 250, 0.6);
+        }
+
+        .bg-spread-3 {
+            top: 20%;
+            left: 60%;
+            width: 0;
+            height: 0;
+            animation: bgSpread3 2.8s ease-out 0.8s forwards;
+            border-radius: 67% 33% 89% 11% / 78% 22% 45% 55%;
+            background: rgba(156, 206, 250, 0.4);
+        }
+
+        @keyframes bgSpread1 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            25% {
+                width: 150%;
+                height: 100%;
+                opacity: 0.3;
+                border-radius: 67% 33% 91% 9% / 78% 22% 45% 55%;
+            }
+            50% {
+                width: 250%;
+                height: 200%;
+                opacity: 0.6;
+                border-radius: 23% 77% 84% 16% / 91% 9% 67% 33%;
+            }
+            to {
+                width: 350%;
+                height: 450%;
+                opacity: 0.9;
+                border-radius: 89% 11% 67% 33% / 45% 78% 22% 55%;
+            }
+        }
+
+        @keyframes bgSpread2 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            30% {
+                width: 80%;
+                height: 60%;
+                opacity: 0.3;
+                border-radius: 45% 55% 78% 22% / 67% 33% 89% 11%;
+            }
+            60% {
+                width: 120%;
+                height: 140%;
+                opacity: 0.7;
+                border-radius: 91% 9% 23% 77% / 34% 66% 82% 18%;
+            }
+            to {
+                width: 160%;
+                height: 220%;
+                opacity: 0.6;
+                border-radius: 23% 77% 91% 9% / 84% 16% 45% 55%;
+            }
+        }
+
+        @keyframes bgSpread3 {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            40% {
+                width: 60px;
+                height: 80px;
+                opacity: 0.4;
+                border-radius: 67% 33% 89% 11% / 45% 55% 78% 22%;
+            }
+            to {
+                width: 120px;
+                height: 160px;
+                opacity: 0.4;
+                border-radius: 15% 85% 78% 22% / 91% 9% 84% 16%;
+            }
+        }
+
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 80%;
+            max-width: 800px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-video {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            border: none;
+            font-size: 18px;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .close-video:hover {
+            transform: scale(1.1);
+            background: #f5f5f5;
+        }
+
+        .processing-video {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .download-btn {
+            display: none;
+            background: #FFC09F;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            background: #ffab7a;
+            transform: translateY(-2px);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        #downloadSection {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-wrapper">
+        <div class="bg-image-container"></div>
+    </div>
+    <div class="background-spreads">
+        <div class="bg-spread bg-spread-1"></div>
+        <div class="bg-spread bg-spread-2"></div>
+        <div class="bg-spread bg-spread-3"></div>
+    </div>
+
+    <!-- Video Processing Modal -->
+    <div class="video-container" id="videoModal">
+        <div class="video-wrapper">
+            <button class="close-video" onclick="closeVideoModal()">×</button>
+            <video class="processing-video" id="processingVideo" loop>
+                <source src="assets/processing.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <a href="#" class="logo" onclick="goHome()">Imagio</a>
+            <button class="nav-toggle" onclick="toggleNav()">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
+            <nav class="nav-menu" id="navMenu">
+                <ul>
+                    <li><a href="#" onclick="closeNav()">Home</a></li>
+                    <li><a href="#" onclick="closeNav()">Gallery</a></li>
+                    <li><a href="#" onclick="closeNav()">Pricing</a></li>
+                    <li><a href="#" onclick="closeNav()">About</a></li>
+                    <li><a href="#" onclick="closeNav()">Contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="input-container" id="inputContainer">
+                <div class="organic-spread spread-1"></div>
+                <div class="organic-spread spread-2"></div>
+                <div class="organic-spread spread-3"></div>
+                <div class="input-header">
+                    <h2 class="input-title">Give Prompt</h2>
+                    <div class="input-header-controls">
+                        <button class="upload-btn" onclick="toggleUploadSection()">
+                            📄 Upload PDF
+                        </button>
+                        <button class="options-btn" onclick="toggleOptions()">⋯</button>
+                    </div>
+                </div>
+                
+                <div class="dropdown-menu" id="optionsMenu">
+                    <div class="toggle-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="voiceOverlay" onchange="toggleVoiceOverlay()" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Voice Overlay</span>
+                    </div>
+                    
+                    <div class="dropdown-item">
+                        <label for="language">Language</label>
+                        <select id="language" class="language-select">
+                            <option value="english">English</option>
+                            <option value="spanish">Spanish</option>
+                            <option value="french">French</option>
+                            <option value="german">German</option>
+                            <option value="italian">Italian</option>
+                            <option value="portuguese">Portuguese</option>
+                            <option value="hindi">Hindi</option>
+                            <option value="chinese">Chinese</option>
+                            <option value="japanese">Japanese</option>
+                        </select>
+                    </div>
+
+                    <div class="dropdown-item">
+                        <label for="scenes">Number of Scenes</label>
+                        <div class="slider-container">
+                            <input type="range" id="scenesSlider" class="slider" min="1" max="10" value="3" oninput="updateSceneValue(this.value)">
+                            <div class="slider-value" id="sceneValue">3 scenes</div>
+                            <div class="time-estimate" id="timeEstimate">Expected duration: ~1 minute</div>
+                        </div>
+                    </div>
+                </div>
+
+                <textarea 
+                    class="main-input" 
+                    id="promptInput"
+                    placeholder="Describe the video you want to create... For example: 'Create a video showing the lifecycle of a butterfly, with smooth transitions between each stage, accompanied by nature sounds and gentle narration.'"
+                ></textarea>
+                
+                <button class="generate-btn-small" onclick="generateVideo()">
+                    Generate Video
+                </button>
+                <div id="downloadSection">
+                    <p>Your video has been generated successfully!</p>
+                    <a href="#" class="download-btn" id="downloadBtn" download>Download Video</a>
+                </div>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-area" onclick="triggerFileInput()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Upload PDF Documents</div>
+                    <div class="upload-subtext">Drag and drop files here or click to browse</div>
+                    <input type="file" class="file-input" id="fileInput" accept=".pdf" multiple onchange="handleFileSelect(event)">
+                </div>
+                <div class="uploaded-files" id="uploadedFiles"></div>
+            </div>
+
+            <button class="generate-btn" onclick="generateVideo()" style="display: none;">
+                Generate Video
+            </button>
+        </main>
+    </div>
+
+    <script>
+        let uploadedFiles = [];
+
+        function toggleNav() {
+            const navMenu = document.getElementById('navMenu');
+            navMenu.classList.toggle('active');
+        }
+
+        function closeNav() {
+            const navMenu = document.getElementById('navMenu');
+            navMenu.classList.remove('active');
+        }
+
+        function goHome() {
+            // Refresh page or navigate to home
+            window.location.reload();
+        }
+
+        function toggleUploadSection() {
+            const uploadSection = document.getElementById('uploadSection');
+            if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
+                uploadSection.style.display = 'block';
+                uploadSection.style.animation = 'fadeInUp 0.4s ease-out';
+            } else {
+                uploadSection.style.animation = 'fadeInUp 0.4s ease-out reverse';
+                setTimeout(() => {
+                    uploadSection.style.display = 'none';
+                }, 400);
+            }
+        }
+
+        function updateSceneValue(value) {
+            const sceneValue = document.getElementById('sceneValue');
+            const timeEstimate = document.getElementById('timeEstimate');
+            const scenes = parseInt(value);
+            const totalSeconds = scenes * 20;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            
+            sceneValue.textContent = `${scenes} scene${scenes !== 1 ? 's' : ''}`;
+            
+            if (minutes > 0) {
+                if (seconds > 0) {
+                    timeEstimate.textContent = `Expected duration: ~${minutes}:${seconds.toString().padStart(2, '0')} minutes`;
+                } else {
+                    timeEstimate.textContent = `Expected duration: ~${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                }
+            } else {
+                timeEstimate.textContent = `Expected duration: ~${seconds} seconds`;
+            }
+        }
+
+        function toggleOptions() {
+            const optionsMenu = document.getElementById('optionsMenu');
+            optionsMenu.classList.toggle('active');
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            addFiles(files);
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            const files = Array.from(event.dataTransfer.files).filter(file => file.type === 'application/pdf');
+            addFiles(files);
+        }
+
+        function addFiles(files) {
+            files.forEach(file => {
+                if (file.type === 'application/pdf' && !uploadedFiles.find(f => f.name === file.name)) {
+                    uploadedFiles.push(file);
+                }
+            });
+            updateFileList();
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const container = document.getElementById('uploadedFiles');
+            if (uploadedFiles.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = uploadedFiles.map((file, index) => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <span class="file-icon">📄</span>
+                        <span>${file.name}</span>
+                        <span style="color: #999; font-size: 0.9rem;">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    </div>
+                    <button class="remove-file" onclick="removeFile(${index})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function generateVideo() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            const language = document.getElementById('language').value;
+            const voiceOverlay = document.getElementById('voiceOverlay').checked;
+            const scenes = document.getElementById('scenesSlider').value;
+
+            if (!prompt) {
+                alert('Please enter a prompt for video generation.');
+                return;
+            }
+
+            // Collect all the data
+            const generationData = {
+                prompt: prompt,
+                language: language,
+                voiceOverlay: voiceOverlay,
+                scenes: parseInt(scenes),
+                files: uploadedFiles.map(file => ({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                }))
+            };
+
+            // Here you would typically send this data to your backend
+            console.log('Generating video with:', generationData);
+            
+            // Show loading state
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+
+            // Simulate processing time
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert('Video generation started! You will be notified when it\'s ready.');
+            }, 2000);
+        }
+
+        function toggleVoiceOverlay() {
+            const voiceOverlay = document.getElementById('voiceOverlay');
+            const languageSelect = document.getElementById('language');
+            
+            if (voiceOverlay.checked) {
+                languageSelect.removeAttribute('disabled');
+                languageSelect.style.opacity = '1';
+            } else {
+                languageSelect.setAttribute('disabled', 'disabled');
+                languageSelect.style.opacity = '0.6';
+            }
+        }
+
+        // Initialize voice overlay state
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleVoiceOverlay();
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.nav-toggle')) {
+                closeNav();
+            }
+            if (!event.target.closest('.options-btn') && !event.target.closest('.dropdown-menu')) {
+                const optionsMenu = document.getElementById('optionsMenu');
+                optionsMenu.classList.remove('active');
+            }
+        });
+
+        // Prevent form submission on Enter key in textarea
+        document.getElementById('promptInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                generateVideo();
+            }
+        });
+
+        function showVideoModal() {
+            const videoModal = document.getElementById('videoModal');
+            const processingVideo = document.getElementById('processingVideo');
+            videoModal.style.display = 'flex';
+            processingVideo.play();
+        }
+
+        function closeVideoModal() {
+            const videoModal = document.getElementById('videoModal');
+            const processingVideo = document.getElementById('processingVideo');
+            videoModal.style.display = 'none';
+            processingVideo.pause();
+        }
+
+        function handleVideoGeneration() {
+            // Show processing video
+            showVideoModal();
+
+            // Simulating successful API response for testing
+            setTimeout(() => {
+                // Hide processing video after 3 seconds (simulating processing time)
+                closeVideoModal();
+
+                // Show download section
+                const downloadSection = document.getElementById('downloadSection');
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadSection.style.display = 'block';
+                
+                // Set download link to the video in assets (for testing)
+                downloadBtn.href = 'assets/generated_video.mp4';
+                downloadBtn.style.display = 'inline-block';
+            }, 3000);
+
+            /* Comment out the actual API call for now
+            fetch('YOUR_BACKEND_API_ENDPOINT', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    // Add your request parameters here
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide processing video
+                closeVideoModal();
+
+                // Show download section
+                const downloadSection = document.getElementById('downloadSection');
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadSection.style.display = 'block';
+                
+                // Set download link (replace with actual video URL from backend)
+                downloadBtn.href = data.videoUrl;
+                downloadBtn.style.display = 'inline-block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                closeVideoModal();
+                alert('An error occurred while generating the video. Please try again.');
+            });
+            */
+        }
+
+        // Update the generate button click handler
+        document.querySelector('.generate-btn-small').addEventListener('click', function(e) {
+            e.preventDefault();
+            handleVideoGeneration();
+        });
+    </script>
+</body>
+</html>
