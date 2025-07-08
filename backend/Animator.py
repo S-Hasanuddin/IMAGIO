@@ -35,7 +35,7 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     try:
         print("  ⚠️ No API key found in environment, using default key...")
-        GOOGLE_API_KEY = "AIzaSyDD9i0bDWanKAAFfBLwuIbUtxlXck5Ox-U"
+        GOOGLE_API_KEY = "Put Your API Key Here"
         os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
     except Exception as e:
         print(f"  ❌ Error setting Google API key: {e}")
